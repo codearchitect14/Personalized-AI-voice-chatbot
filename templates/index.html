@@ -1,0 +1,1319 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Chat with Your Clone</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .app-container {
+            display: flex;
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+            height: 90vh;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            width: 300px;
+            background: #f8f9fa;
+            border-right: 1px solid #e1e5e9;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            padding: 25px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .sidebar-header h2 {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+        }
+
+        .new-chat-btn {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 10px;
+            transition: background 0.3s;
+        }
+
+        .new-chat-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .chat-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .chat-item {
+            padding: 15px;
+            margin: 5px 0;
+            background: white;
+            border-radius: 10px;
+            cursor: pointer;
+            border: 1px solid #e1e5e9;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .chat-item:hover {
+            border-color: #667eea;
+            transform: translateX(5px);
+        }
+
+        .chat-item.active {
+            border-color: #667eea;
+            background: #e3f2fd;
+        }
+
+        .chat-name {
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        .chat-preview {
+            font-size: 0.8em;
+            color: #666;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .chat-actions {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .chat-item:hover .chat-actions {
+            opacity: 1;
+        }
+
+        .chat-action-btn {
+            background: none;
+            border: none;
+            color: #666;
+            cursor: pointer;
+            padding: 5px;
+            margin-left: 5px;
+        }
+
+        .chat-action-btn:hover {
+            color: #ff6b6b;
+        }
+
+        /* Main Chat Area */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1em;
+        }
+
+        .current-chat-name {
+            font-size: 1.2em;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        .chat-container {
+            padding: 20px;
+            flex: 1;
+            overflow-y: auto;
+            border-bottom: 1px solid #eee;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            padding: 15px 20px;
+            border-radius: 20px;
+            max-width: 85%;
+            word-wrap: break-word;
+        }
+
+        .user-message {
+            background: #667eea;
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 5px;
+        }
+
+        .assistant-message {
+            background: #f1f3f4;
+            color: #333;
+            border-bottom-left-radius: 5px;
+            border: 1px solid #e1e5e9;
+        }
+
+        .message-content {
+            margin-bottom: 10px;
+        }
+
+        .message-audio {
+            margin-top: 15px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 15px;
+            border: 1px solid #e1e5e9;
+        }
+
+        .message-audio audio {
+            width: 100%;
+            height: 40px;
+            border-radius: 20px;
+        }
+
+        .audio-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .audio-header::before {
+            content: "🔊";
+            margin-right: 5px;
+        }
+
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+
+        .message-time {
+            font-size: 0.8em;
+        }
+
+        .input-area {
+            padding: 20px;
+            display: flex;
+            gap: 10px;
+            background: #f8f9fa;
+            flex-wrap: wrap;
+        }
+
+        #messageInput {
+            flex: 1;
+            min-width: 200px;
+            padding: 15px 20px;
+            border: 2px solid #e1e5e9;
+            border-radius: 25px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        #messageInput:focus {
+            border-color: #667eea;
+        }
+
+        button {
+            padding: 15px 25px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .voice-btn {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+        }
+
+        .voice-btn.recording {
+            background: linear-gradient(135deg, #ff3838 0%, #c23616 100%);
+            animation: pulse 1.5s infinite;
+        }
+
+        .browser-speech-btn {
+            background: linear-gradient(135deg, #00b894 0%, #00a085 100%);
+        }
+        
+        .browser-speech-btn.listening {
+            background: linear-gradient(135deg, #00cec9 0%, #0984e3 100%);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            padding: 0 20px 20px;
+        }
+
+        .clear-btn {
+            background: #6c757d;
+        }
+
+        .delete-btn {
+            background: #dc3545;
+        }
+
+        .status {
+            padding: 10px 20px;
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            margin: 10px 20px;
+            border-radius: 5px;
+            display: none;
+        }
+
+        .typing-indicator {
+            display: none;
+            padding: 15px 20px;
+            color: #666;
+            font-style: italic;
+            background: #f1f3f4;
+            border-radius: 20px;
+            max-width: 85%;
+            border-bottom-left-radius: 5px;
+        }
+
+        .voice-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+            padding: 0 20px;
+        }
+
+        .recording-indicator {
+            display: none;
+            color: #ff3838;
+            font-weight: bold;
+        }
+
+        .recording-time {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+        }
+
+        .empty-state h3 {
+            margin-bottom: 10px;
+        }
+
+        .audio-playing {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: #667eea;
+        }
+
+        .audio-loading {
+            opacity: 0.7;
+        }
+        
+        .audio-error {
+            color: #dc3545;
+            font-style: italic;
+        }
+
+        @media (max-width: 768px) {
+            .app-container {
+                flex-direction: column;
+                height: auto;
+            }
+            
+            .sidebar {
+                width: 100%;
+                height: 200px;
+            }
+            
+            .chat-list {
+                display: flex;
+                overflow-x: auto;
+                flex-wrap: nowrap;
+            }
+            
+            .chat-item {
+                min-width: 200px;
+                margin: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>💬 Voice Chats</h2>
+                <button class="new-chat-btn" onclick="createNewChat()">+ New Chat</button>
+            </div>
+            <div class="chat-list" id="chatList">
+                <!-- Chat items will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="header">
+                <h1>🎙️ Voice Chat</h1>
+                <p>Chat with GPT-4 using your cloned voice</p>
+                <div class="current-chat-name" id="currentChatName">Select a chat</div>
+            </div>
+
+            <div class="status" id="status"></div>
+
+            <div class="chat-container" id="chatContainer">
+                <div class="empty-state" id="emptyState">
+                    <h3>Welcome to Voice Chat! 🎉</h3>
+                    <p>Select a chat from the sidebar or create a new one to start chatting.</p>
+                </div>
+                <div class="typing-indicator" id="typingIndicator">AI is thinking...</div>
+            </div>
+
+            <div class="input-area" id="inputArea" style="display: none;">
+                <input type="text" id="messageInput" placeholder="Type your message or use voice..." autocomplete="off">
+                <button onclick="sendMessage()" id="sendButton">Send</button>
+                <button onclick="toggleRecording()" id="recordButton" class="voice-btn">🎤 Record</button>
+                <button onclick="toggleBrowserSpeech()" id="browserSpeechButton" class="browser-speech-btn">🎙️ Speak</button>
+            </div>
+
+            <div class="voice-controls" id="voiceControls" style="display: none;">
+                <div class="recording-indicator" id="recordingIndicator">● Recording...</div>
+                <div class="recording-time" id="recordingTime"></div>
+                <div class="recording-indicator" id="browserSpeechIndicator" style="display: none; color: #00cec9;">● Listening...</div>
+            </div>
+
+            <div class="controls" id="controls" style="display: none;">
+                <button onclick="clearCurrentChat()" class="clear-btn">Clear Chat</button>
+                <button onclick="renameCurrentChat()" class="clear-btn">Rename Chat</button>
+                <button onclick="deleteCurrentChat()" class="delete-btn">Delete Chat</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let currentSessionId = null;
+        let chatSessions = {};
+        let mediaRecorder;
+        let audioChunks = [];
+        let recordingStartTime;
+        let recordingTimer;
+        let speechRecognition;
+        let isBrowserSpeechActive = false;
+        let currentEventSource = null;
+        let currentStreamingMessageId = null;
+        let currentAssistantMessageDiv = null;
+        let accumulatedResponse = '';
+
+        // DOM elements
+        const chatList = document.getElementById('chatList');
+        const chatContainer = document.getElementById('chatContainer');
+        const emptyState = document.getElementById('emptyState');
+        const inputArea = document.getElementById('inputArea');
+        const voiceControls = document.getElementById('voiceControls');
+        const controls = document.getElementById('controls');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        const recordButton = document.getElementById('recordButton');
+        const browserSpeechButton = document.getElementById('browserSpeechButton');
+        const status = document.getElementById('status');
+        const typingIndicator = document.getElementById('typingIndicator');
+        const recordingIndicator = document.getElementById('recordingIndicator');
+        const browserSpeechIndicator = document.getElementById('browserSpeechIndicator');
+        const recordingTime = document.getElementById('recordingTime');
+        const currentChatName = document.getElementById('currentChatName');
+
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', function() {
+            initSpeechRecognition();
+            loadChatSessions();
+            createDefaultSession();
+        });
+
+        // Chat Session Management
+        async function loadChatSessions() {
+            try {
+                const response = await fetch('/sessions');
+                const data = await response.json();
+                chatSessions = data.sessions;
+                renderChatList();
+            } catch (error) {
+                console.error('Error loading sessions:', error);
+            }
+        }
+
+        function renderChatList() {
+            chatList.innerHTML = '';
+            
+            if (Object.keys(chatSessions).length === 0) {
+                chatList.innerHTML = '<div class="empty-state"><p>No chats yet</p></div>';
+                return;
+            }
+            
+            Object.entries(chatSessions).forEach(([sessionId, session]) => {
+                const chatItem = document.createElement('div');
+                chatItem.className = `chat-item ${sessionId === currentSessionId ? 'active' : ''}`;
+                chatItem.innerHTML = `
+                    <div class="chat-name">${session.name}</div>
+                    <div class="chat-preview">${getChatPreview(session)}</div>
+                    <div class="chat-actions">
+                        <button class="chat-action-btn" onclick="event.stopPropagation(); renameChat('${sessionId}')">✏️</button>
+                        <button class="chat-action-btn" onclick="event.stopPropagation(); deleteChat('${sessionId}')">🗑️</button>
+                    </div>
+                `;
+                chatItem.onclick = () => switchToChat(sessionId);
+                chatList.appendChild(chatItem);
+            });
+        }
+
+        function getChatPreview(session) {
+            if (session.conversations.length === 0) {
+                return 'No messages yet';
+            }
+            const lastMessage = session.conversations[session.conversations.length - 1];
+            return lastMessage.user_input || lastMessage.assistant_response || 'New chat';
+        }
+
+        async function createNewChat() {
+            const chatName = prompt('Enter chat name:', `Chat ${Object.keys(chatSessions).length + 1}`);
+            if (!chatName) return;
+            
+            try {
+                const response = await fetch(`/session/${encodeURIComponent(chatName)}`, { method: 'POST' });
+                const data = await response.json();
+                
+                if (data.success) {
+                    chatSessions[data.session_id] = {
+                        name: data.session_name,
+                        conversations: [],
+                        created_at: new Date().toISOString(),
+                        audio_files: {}
+                    };
+                    renderChatList();
+                    switchToChat(data.session_id);
+                }
+            } catch (error) {
+                showStatus('Error creating chat: ' + error.message, true);
+            }
+        }
+
+        async function createDefaultSession() {
+            if (Object.keys(chatSessions).length === 0) {
+                await createNewChat();
+            }
+        }
+
+        // Update the switchToChat function to handle existing streaming messages
+function switchToChat(sessionId) {
+    currentSessionId = sessionId;
+    const session = chatSessions[sessionId];
+    
+    // Update UI
+    currentChatName.textContent = session.name;
+    emptyState.style.display = 'none';
+    inputArea.style.display = 'flex';
+    voiceControls.style.display = 'flex';
+    controls.style.display = 'flex';
+    
+    // Clean up any existing streaming
+    cleanupStreaming();
+    
+    // Render chat messages
+    renderChatMessages(session);
+    
+    // Update chat list
+    renderChatList();
+    
+    // Focus input
+    messageInput.focus();
+}
+
+        function renderChatMessages(session) {
+            chatContainer.innerHTML = '';
+            chatContainer.appendChild(typingIndicator);
+            
+            if (session.conversations.length === 0) {
+                const welcomeMsg = document.createElement('div');
+                welcomeMsg.className = 'message assistant-message';
+                welcomeMsg.innerHTML = `
+                    <div class="message-header">
+                        <span>🤖 Assistant</span>
+                        <span class="message-time">${getCurrentTime()}</span>
+                    </div>
+                    <div class="message-content">
+                        Hello! I'm your AI assistant with your cloned voice. You can type your message, use browser speech recognition, or record audio!
+                    </div>
+                `;
+                chatContainer.appendChild(welcomeMsg);
+            } else {
+                session.conversations.forEach(conv => {
+                    addMessageToUI(conv.user_input, true);
+                    // For existing conversations, reconstruct audio URL from message_id
+                    const audioUrl = conv.message_id ? `/audio/${currentSessionId}/${conv.message_id}` : null;
+                    addMessageToUI(conv.assistant_response, false, audioUrl, false);
+                });
+            }
+            
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // Message Functions
+        function getCurrentTime() {
+            return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function addMessageToUI(text, isUser = false, audioUrl = null, autoPlay = true) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user-message' : 'assistant-message'}`;
+            
+            const messageHeader = document.createElement('div');
+            messageHeader.className = 'message-header';
+            messageHeader.innerHTML = isUser ? 
+                `<span>👤 You</span><span class="message-time">${getCurrentTime()}</span>` :
+                `<span>🤖 Assistant</span><span class="message-time">${getCurrentTime()}</span>`;
+            
+            const messageContent = document.createElement('div');
+            messageContent.className = 'message-content';
+            messageContent.textContent = text;
+            
+            messageDiv.appendChild(messageHeader);
+            messageDiv.appendChild(messageContent);
+            
+            // Add audio player if audio URL is provided (for assistant messages)
+            if (audioUrl && !isUser) {
+                const audioContainer = document.createElement('div');
+                audioContainer.className = 'message-audio';
+                
+                const audioHeader = document.createElement('div');
+                audioHeader.className = 'audio-header';
+                audioHeader.textContent = 'Voice Response';
+                
+                const audioElement = document.createElement('audio');
+                audioElement.controls = true;
+                audioElement.preload = "metadata";
+                
+                // Set up audio element
+                audioElement.addEventListener('loadstart', () => {
+                    audioContainer.classList.add('audio-loading');
+                });
+                
+                audioElement.addEventListener('canplay', () => {
+                    audioContainer.classList.remove('audio-loading');
+                });
+                
+                audioElement.addEventListener('error', (e) => {
+                    console.error('Audio loading error:', e);
+                    audioContainer.classList.remove('audio-loading');
+                    audioContainer.classList.add('audio-error');
+                    audioHeader.textContent = 'Voice Response (Audio unavailable)';
+                });
+                
+                audioElement.addEventListener('play', () => {
+                    messageDiv.classList.add('audio-playing');
+                });
+                
+                audioElement.addEventListener('pause', () => {
+                    messageDiv.classList.remove('audio-playing');
+                });
+                
+                audioElement.addEventListener('ended', () => {
+                    messageDiv.classList.remove('audio-playing');
+                });
+                
+                // Set audio source
+                audioElement.src = audioUrl;
+                
+                audioContainer.appendChild(audioHeader);
+                audioContainer.appendChild(audioElement);
+                messageDiv.appendChild(audioContainer);
+                
+                // Auto-play if enabled
+                if (autoPlay) {
+                    setTimeout(() => {
+                        audioElement.play().catch(e => {
+                            console.log('Auto-play prevented:', e);
+                        });
+                    }, 500);
+                }
+            }
+            
+            chatContainer.insertBefore(messageDiv, typingIndicator);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            
+            return messageDiv;
+        }
+
+        async function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message || !currentSessionId) return;
+
+            await processMessage(message);
+        }
+
+        async function processMessage(message) {
+    // Add user message to UI immediately
+    addMessageToUI(message, true);
+    messageInput.value = '';
+    sendButton.disabled = true;
+    recordButton.disabled = true;
+    browserSpeechButton.disabled = true;
+
+    // Show typing indicator
+    showTyping();
+
+    try {
+        const formData = new FormData();
+        formData.append('message', message);
+        formData.append('session_id', currentSessionId);
+
+        // Use streaming endpoint
+        await processStreamingResponse(formData, false);
+
+    } catch (error) {
+        hideTyping();
+        showStatus('Network error: ' + error.message, true);
+        sendButton.disabled = false;
+        recordButton.disabled = false;
+        browserSpeechButton.disabled = false;
+        messageInput.focus();
+    }
+}
+
+
+        // Voice Recording Functions
+        function initSpeechRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                browserSpeechButton.style.display = 'none';
+                showStatus('Browser speech recognition not supported', true);
+                return;
+            }
+            
+            speechRecognition = new SpeechRecognition();
+            speechRecognition.continuous = false;
+            speechRecognition.interimResults = false;
+            speechRecognition.lang = 'en-US';
+            
+            speechRecognition.onstart = () => {
+                console.log('Speech recognition started');
+                browserSpeechButton.classList.add('listening');
+                browserSpeechIndicator.style.display = 'block';
+            };
+            
+            speechRecognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                console.log('Speech recognized:', transcript);
+                messageInput.value = transcript;
+                stopBrowserSpeech();
+                sendMessage();
+            };
+            
+            speechRecognition.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+                stopBrowserSpeech();
+                showStatus('Speech recognition error: ' + event.error, true);
+            };
+            
+            speechRecognition.onend = () => {
+                console.log('Speech recognition ended');
+                stopBrowserSpeech();
+            };
+        }
+
+        function toggleBrowserSpeech() {
+            if (isBrowserSpeechActive) {
+                stopBrowserSpeech();
+            } else {
+                startBrowserSpeech();
+            }
+        }
+
+        function startBrowserSpeech() {
+            if (speechRecognition) {
+                try {
+                    speechRecognition.start();
+                    isBrowserSpeechActive = true;
+                } catch (error) {
+                    console.error('Error starting speech recognition:', error);
+                    showStatus('Error starting speech recognition', true);
+                }
+            }
+        }
+
+        function stopBrowserSpeech() {
+            if (speechRecognition && isBrowserSpeechActive) {
+                try {
+                    speechRecognition.stop();
+                } catch (error) {
+                    console.error('Error stopping speech recognition:', error);
+                }
+                isBrowserSpeechActive = false;
+                browserSpeechButton.classList.remove('listening');
+                browserSpeechIndicator.style.display = 'none';
+            }
+        }
+
+        async function toggleRecording() {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                stopRecording();
+            } else {
+                startRecording();
+            }
+        }
+
+        async function startRecording() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        audioChunks.push(event.data);
+                    }
+                };
+
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    await processAudioRecording(audioBlob);
+                    
+                    // Stop all tracks
+                    stream.getTracks().forEach(track => track.stop());
+                };
+
+                mediaRecorder.start();
+                recordButton.textContent = '⏹️ Stop';
+                recordButton.classList.add('recording');
+                recordingIndicator.style.display = 'block';
+                
+                // Start recording timer
+                recordingStartTime = Date.now();
+                updateRecordingTime();
+                recordingTimer = setInterval(updateRecordingTime, 1000);
+                
+            } catch (error) {
+                showStatus('Error accessing microphone: ' + error.message, true);
+            }
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+                recordButton.textContent = '🎤 Record';
+                recordButton.classList.remove('recording');
+                recordingIndicator.style.display = 'none';
+                recordingTime.textContent = '';
+                
+                // Clear timer
+                clearInterval(recordingTimer);
+            }
+        }
+
+        function updateRecordingTime() {
+            const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
+            const minutes = Math.floor(elapsed / 60);
+            const seconds = elapsed % 60;
+            recordingTime.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        // Replace the processAudioRecording function
+async function processAudioRecording(audioBlob) {
+    if (!currentSessionId) return;
+    
+    sendButton.disabled = true;
+    recordButton.disabled = true;
+    browserSpeechButton.disabled = true;
+    
+    showTyping();
+    const processingMessage = addMessageToUI("🎤 [Processing audio...]", true);
+
+    try {
+        const formData = new FormData();
+        formData.append('file', audioBlob, 'recording.webm');
+        formData.append('session_id', currentSessionId);
+
+        // Remove the "Processing audio..." message
+        processingMessage.remove();
+
+        // Use streaming endpoint for voice chat
+        await processStreamingResponse(formData, true);
+
+    } catch (error) {
+        hideTyping();
+        showStatus('Network error: ' + error.message, true);
+        sendButton.disabled = false;
+        recordButton.disabled = false;
+        browserSpeechButton.disabled = false;
+        messageInput.focus();
+    }
+}
+// Replace the processStreamingResponse function
+async function processStreamingResponse(formData, isVoiceChat = false) {
+    // Close any existing event source
+    cleanupStreaming();
+    
+    accumulatedResponse = '';
+    
+    const endpoint = isVoiceChat ? '/voice_chat_stream' : '/chat_stream';
+    
+    try {
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n\n');
+
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    try {
+                        const data = JSON.parse(line.slice(6)); // Remove 'data: ' prefix
+                        
+                        if (data.chunk) {
+                            // First chunk - create the assistant message div
+                            if (!currentAssistantMessageDiv) {
+                                hideTyping();
+                                currentAssistantMessageDiv = addMessageToUI('', false, null, false);
+                                currentStreamingMessageId = data.message_id;
+                                
+                                // Add streaming animation
+                                const contentDiv = currentAssistantMessageDiv.querySelector('.message-content');
+                                contentDiv.innerHTML = data.chunk + '<span class="streaming-cursor">▊</span>';
+                            } else {
+                                // Append chunk to existing message
+                                const contentDiv = currentAssistantMessageDiv.querySelector('.message-content');
+                                accumulatedResponse += data.chunk;
+                                contentDiv.innerHTML = accumulatedResponse + '<span class="streaming-cursor">▊</span>';
+                            }
+                            
+                            // Scroll to bottom
+                            chatContainer.scrollTop = chatContainer.scrollHeight;
+                        }
+                        
+                        if (data.complete) {
+                            // Streaming complete
+                            if (currentAssistantMessageDiv) {
+                                const contentDiv = currentAssistantMessageDiv.querySelector('.message-content');
+                                contentDiv.innerHTML = data.full_response;
+                                contentDiv.classList.remove('streaming');
+                                
+                                // Remove cursor
+                                const cursor = contentDiv.querySelector('.streaming-cursor');
+                                if (cursor) cursor.remove();
+                                
+                                // Add audio player if available
+                                if (data.audio_url) {
+                                    addAudioPlayerToMessage(currentAssistantMessageDiv, data.audio_url, true);
+                                }
+                            }
+                            
+                            // Update chat sessions
+                            if (chatSessions[data.session_id]) {
+                                const conversation = chatSessions[data.session_id].conversations.find(
+                                    conv => conv.message_id === data.message_id
+                                );
+                                if (conversation) {
+                                    conversation.assistant_response = data.full_response;
+                                    conversation.is_streaming = false;
+                                }
+                            }
+                            renderChatList();
+                            
+                            // Clean up
+                            cleanupStreaming();
+                            sendButton.disabled = false;
+                            recordButton.disabled = false;
+                            browserSpeechButton.disabled = false;
+                            messageInput.focus();
+                        }
+                        
+                        if (data.user_input && isVoiceChat) {
+                            // For voice chat, update the user message with transcribed text
+                            const userMessages = chatContainer.querySelectorAll('.user-message');
+                            const lastUserMessage = userMessages[userMessages.length - 1];
+                            if (lastUserMessage) {
+                                const contentDiv = lastUserMessage.querySelector('.message-content');
+                                if (contentDiv && contentDiv.textContent === "🎤 [Processing audio...]") {
+                                    contentDiv.textContent = data.user_input;
+                                }
+                            }
+                        }
+                        
+                    } catch (error) {
+                        console.error('Error parsing streaming data:', error);
+                    }
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Streaming error:', error);
+        if (currentAssistantMessageDiv) {
+            const contentDiv = currentAssistantMessageDiv.querySelector('.message-content');
+            contentDiv.innerHTML = 'Sorry, there was an error generating the response.';
+            contentDiv.classList.remove('streaming');
+        }
+        cleanupStreaming();
+        sendButton.disabled = false;
+        recordButton.disabled = false;
+        browserSpeechButton.disabled = false;
+        showStatus('Error receiving response: ' + error.message, true);
+    }
+}
+function cleanupStreaming() {
+    if (currentEventSource) {
+        currentEventSource.close();
+        currentEventSource = null;
+    }
+    currentAssistantMessageDiv = null;
+    currentStreamingMessageId = null;
+    accumulatedResponse = '';
+    hideTyping();
+}
+// Update the addMessageToUI function to handle streaming
+function addMessageToUI(text, isUser = false, audioUrl = null, autoPlay = true) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${isUser ? 'user-message' : 'assistant-message'}`;
+    
+    const messageHeader = document.createElement('div');
+    messageHeader.className = 'message-header';
+    messageHeader.innerHTML = isUser ? 
+        `<span>👤 You</span><span class="message-time">${getCurrentTime()}</span>` :
+        `<span>🤖 Assistant</span><span class="message-time">${getCurrentTime()}</span>`;
+    
+    const messageContent = document.createElement('div');
+    messageContent.className = 'message-content';
+    messageContent.textContent = text;
+    
+    // Add streaming class for assistant messages that might stream
+    if (!isUser) {
+        messageContent.classList.add('streaming');
+    }
+    
+    messageDiv.appendChild(messageHeader);
+    messageDiv.appendChild(messageContent);
+    
+    // Add audio player if audio URL is provided and not streaming
+    if (audioUrl && !isUser && !messageContent.classList.contains('streaming')) {
+        addAudioPlayerToMessage(messageDiv, audioUrl, autoPlay);
+    }
+    
+    chatContainer.insertBefore(messageDiv, typingIndicator);
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+    
+    return messageDiv;
+}
+
+// Helper function to add audio player
+function addAudioPlayerToMessage(messageDiv, audioUrl, autoPlay = true) {
+    const audioContainer = document.createElement('div');
+    audioContainer.className = 'message-audio';
+    
+    const audioHeader = document.createElement('div');
+    audioHeader.className = 'audio-header';
+    audioHeader.textContent = 'Voice Response';
+    
+    const audioElement = document.createElement('audio');
+    audioElement.controls = true;
+    audioElement.preload = "metadata";
+    
+    // Set up audio element event listeners
+    audioElement.addEventListener('loadstart', () => {
+        audioContainer.classList.add('audio-loading');
+    });
+    
+    audioElement.addEventListener('canplay', () => {
+        audioContainer.classList.remove('audio-loading');
+    });
+    
+    audioElement.addEventListener('error', (e) => {
+        console.error('Audio loading error:', e);
+        audioContainer.classList.remove('audio-loading');
+        audioContainer.classList.add('audio-error');
+        audioHeader.textContent = 'Voice Response (Audio unavailable)';
+    });
+    
+    audioElement.addEventListener('play', () => {
+        messageDiv.classList.add('audio-playing');
+    });
+    
+    audioElement.addEventListener('pause', () => {
+        messageDiv.classList.remove('audio-playing');
+    });
+    
+    audioElement.addEventListener('ended', () => {
+        messageDiv.classList.remove('audio-playing');
+    });
+    
+    // Set audio source
+    audioElement.src = audioUrl;
+    
+    audioContainer.appendChild(audioHeader);
+    audioContainer.appendChild(audioElement);
+    messageDiv.appendChild(audioContainer);
+    
+    // Auto-play if enabled
+    if (autoPlay) {
+        setTimeout(() => {
+            audioElement.play().catch(e => {
+                console.log('Auto-play prevented:', e);
+            });
+        }, 500);
+    }
+}
+// Add CSS for streaming cursor
+const style = document.createElement('style');
+style.textContent = `
+    .streaming-cursor {
+        animation: blink 1s infinite;
+        color: #667eea;
+    }
+    
+    @keyframes blink {
+        0%, 50% { opacity: 1; }
+        51%, 100% { opacity: 0; }
+    }
+    
+    .message-content.streaming {
+        min-height: 20px;
+    }
+`;
+document.head.appendChild(style);
+
+        // Chat Management Functions
+        async function clearCurrentChat() {
+            if (!currentSessionId) return;
+            
+            if (confirm('Clear all messages in this chat?')) {
+                if (chatSessions[currentSessionId]) {
+                    chatSessions[currentSessionId].conversations = [];
+                    renderChatMessages(chatSessions[currentSessionId]);
+                    renderChatList();
+                    showStatus('Chat cleared', false);
+                }
+            }
+        }
+
+        async function renameCurrentChat() {
+            if (!currentSessionId) return;
+            
+            const newName = prompt('Enter new chat name:', chatSessions[currentSessionId].name);
+            if (newName && newName !== chatSessions[currentSessionId].name) {
+                try {
+                    const formData = new FormData();
+                    formData.append('new_name', newName);
+                    
+                    const response = await fetch(`/session/${currentSessionId}/rename`, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const data = await response.json();
+                    if (data.success) {
+                        chatSessions[currentSessionId].name = newName;
+                        currentChatName.textContent = newName;
+                        renderChatList();
+                        showStatus('Chat renamed', false);
+                    }
+                } catch (error) {
+                    showStatus('Error renaming chat', true);
+                }
+            }
+        }
+
+        async function deleteCurrentChat() {
+            if (!currentSessionId) return;
+            
+            if (confirm('Are you sure you want to delete this chat? This action cannot be undone.')) {
+                try {
+                    const response = await fetch(`/session/${currentSessionId}`, {
+                        method: 'DELETE'
+                    });
+                    
+                    const data = await response.json();
+                    if (data.success) {
+                        delete chatSessions[currentSessionId];
+                        currentSessionId = null;
+                        currentChatName.textContent = 'Select a chat';
+                        emptyState.style.display = 'block';
+                        inputArea.style.display = 'none';
+                        voiceControls.style.display = 'none';
+                        controls.style.display = 'none';
+                        chatContainer.innerHTML = '';
+                        chatContainer.appendChild(emptyState);
+                        renderChatList();
+                        showStatus('Chat deleted', false);
+                    }
+                } catch (error) {
+                    showStatus('Error deleting chat', true);
+                }
+            }
+        }
+
+        async function renameChat(sessionId) {
+            const session = chatSessions[sessionId];
+            const newName = prompt('Enter new chat name:', session.name);
+            if (newName && newName !== session.name) {
+                try {
+                    const formData = new FormData();
+                    formData.append('new_name', newName);
+                    
+                    const response = await fetch(`/session/${sessionId}/rename`, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const data = await response.json();
+                    if (data.success) {
+                        session.name = newName;
+                        if (sessionId === currentSessionId) {
+                            currentChatName.textContent = newName;
+                        }
+                        renderChatList();
+                        showStatus('Chat renamed', false);
+                    }
+                } catch (error) {
+                    showStatus('Error renaming chat', true);
+                }
+            }
+        }
+
+        async function deleteChat(sessionId) {
+            if (confirm('Are you sure you want to delete this chat? This action cannot be undone.')) {
+                try {
+                    const response = await fetch(`/session/${sessionId}`, {
+                        method: 'DELETE'
+                    });
+                    
+                    const data = await response.json();
+                    if (data.success) {
+                        delete chatSessions[sessionId];
+                        if (sessionId === currentSessionId) {
+                            currentSessionId = null;
+                            currentChatName.textContent = 'Select a chat';
+                            emptyState.style.display = 'block';
+                            inputArea.style.display = 'none';
+                            voiceControls.style.display = 'none';
+                            controls.style.display = 'none';
+                            chatContainer.innerHTML = '';
+                            chatContainer.appendChild(emptyState);
+                        }
+                        renderChatList();
+                        showStatus('Chat deleted', false);
+                    }
+                } catch (error) {
+                    showStatus('Error deleting chat', true);
+                }
+            }
+        }
+
+        function showTyping() {
+            typingIndicator.style.display = 'block';
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function hideTyping() {
+            typingIndicator.style.display = 'none';
+        }
+
+        function showStatus(message, isError = false) {
+            status.textContent = message;
+            status.style.display = 'block';
+            status.style.background = isError ? '#f8d7da' : '#d1ecf1';
+            status.style.borderLeftColor = isError ? '#dc3545' : '#0dcaf0';
+            
+            setTimeout(() => {
+                status.style.display = 'none';
+            }, 5000);
+        }
+
+        // Send message on Enter key
+        messageInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>
